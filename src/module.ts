@@ -7,6 +7,7 @@ import { DataQueryResponseData, LegacyResponseData, DataFrame, guessFieldTypes, 
 import _ from 'lodash';
 import $ from 'jquery';
 import moment from 'moment';
+import {hsluvToHex, hexToHsluv} from 'hsluv-ts';
 import kbn from 'grafana/app/core/utils/kbn';
 
 import appEvents from 'grafana/app/core/app_events';
@@ -101,6 +102,11 @@ class DiscretePanelCtrl extends CanvasPanelCtrl {
     highlightOnMouseover: true,
     expandFromQueryS: 0,
     legendSortBy: '-ms',
+    useContinuousColor: false,
+    continuousHighColor: '#FF0000',
+    continuousHighValue: 1.0,
+    continuousLowColor: '#00FF00',
+    continuousLowValue: 0.0,
     units: 'short',
     timeOptions: [
       {
@@ -287,15 +293,24 @@ class DiscretePanelCtrl extends CanvasPanelCtrl {
   }
 
   getColor(val) {
-    if (_.has(this.colorMap, val)) {
-      return this.colorMap[val];
+    if (this.panel.useContinuousColor === true) {
+      // const hue = ((val - this.panel.rangeLow.value) / this.panel.rangeHigh.value) * 360;
+      const hue = (this.panel.continuousLowColorHSL[0] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueHueMultiplier));
+      const sat = (this.panel.continuousLowColorHSL[1] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueSatMultiplier));
+      const lum = (this.panel.continuousLowColorHSL[2] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueLumMultiplier));
+      return hsluvToHex([hue, sat, lum]);
+
+    } else {
+      if (_.has(this.colorMap, val)) {
+        return this.colorMap[val];
+      }
+      if (this._colorsPaleteCash[val] === undefined) {
+        const c = grafanaColors[this._colorsPaleteCash.length % grafanaColors.length];
+        this._colorsPaleteCash[val] = c;
+        this._colorsPaleteCash.length++;
+      }
+      return this._colorsPaleteCash[val];
     }
-    if (this._colorsPaleteCash[val] === undefined) {
-      const c = grafanaColors[this._colorsPaleteCash.length % grafanaColors.length];
-      this._colorsPaleteCash[val] = c;
-      this._colorsPaleteCash.length++;
-    }
-    return this._colorsPaleteCash[val];
   }
 
   randomColor() {
@@ -446,6 +461,26 @@ class DiscretePanelCtrl extends CanvasPanelCtrl {
   onConfigChanged(update = false) {
     this.isTimeline = this.panel.display === 'timeline';
     this.isStacked = this.panel.display === 'stacked';
+    this.panel.continuousHighColorHSL = hexToHsluv(this.panel.continuousHighColor);
+    this.panel.continuousLowColorHSL = hexToHsluv(this.panel.continuousLowColor);
+    this.panel.continuousValueHueMultiplier = (this.panel.continuousHighColorHSL[0] -
+      this.panel.continuousLowColorHSL[0]) / this.panel.continuousHighValue;
+    this.panel.continuousValueSatMultiplier = (this.panel.continuousHighColorHSL[1] -
+      this.panel.continuousLowColorHSL[1]) / this.panel.continuousHighValue;
+    this.panel.continuousValueLumMultiplier = (this.panel.continuousHighColorHSL[2] -
+      this.panel.continuousLowColorHSL[2]) / this.panel.continuousHighValue;
+    console.log(this.panel.continuousValueLumMultiplier);
+    // const mappingArray = new Array(this.panel.colorMaps.keys()).sort();
+    // this.panel.rangeHigh = {
+    //   "value": this.panel.,
+    //   "color": this.panel.colorMaps[mappingArray[mappingArray.length - 1]],
+    //   "hsluv": hexToHsluv(this.panel.colorMaps[mappingArray[mappingArray.length - 1]])
+    // };
+    // this.panel.rangeLow = {
+    //   "value":  mappingArray[0],
+    //   "color": this.panel.colorMaps[mappingArray[0]],
+    //   "hsluv": hexToHsluv(this.panel.colorMaps[mappingArray[0]])
+    // };
 
     this.formatter = null;
     if (this.panel.units && 'none' !== this.panel.units) {
