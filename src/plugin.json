@@ -1,20 +1,20 @@
 {
   "type": "panel",
-  "name": "Discrete",
-  "id": "natel-discrete-panel",
+  "name": "ContinuousColor",
+  "id": "aceiot-continuous-panel",
 
   "info": {
-    "description": "Discrete Events grafana",
+    "description": "Continous Color Charting",
     "author": {
-      "name": "Natel Energy"
+      "name": "ACE IoT Solutions"
     },
-    "keywords": [ "discrete", "events", "strings" ],
+    "keywords": [ "continuous", "events", "strings" ],
     "logos": {
       "small": "img/discrete_logo.svg",
       "large": "img/discrete_logo.svg"
     },
     "links": [
-      {"name": "Project site", "url": "https://github.com/NatelEnergy/grafana-discrete-panel"},
+      {"name": "Project site", "url": "https://github.com/ACE-IoT-Solutions/grafana-discrete-panel"},
       {"name": "MIT License",  "url": "https://github.com/NatelEnergy/grafana-discrete-panel/blob/master/LICENSE"},
       {"name": "Natel Energy", "url": "http://www.natelenergy.com/"}
     ],

@@ -1,14 +1,14 @@
 {
-  "name": "natel-discrete-panel",
+  "name": "aceiot-continuous-color",
   "version": "0.0.10-dev",
-  "description": "Discrete Events in Grafana",
+  "description": "Continuous Color Plots in Grafana",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
     "test": "grafana-toolkit plugin:test",
     "dev": "grafana-toolkit plugin:dev",
     "watch": "grafana-toolkit plugin:dev --watch"
   },
-  "author": "ryantxu",
+  "author": "acedrew",
   "license": "MIT",
   "keywords": [
     "discrete",
