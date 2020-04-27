@@ -303,24 +303,21 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
         this.panel.continuousHighValue,
         this.panel.continuousLowColorHSL[0],
         this.panel.continuousHighColorHSL[0]
-      );
-      const sat = this.rangeMap(
+      ) % 360;
+      const sat = this.clampRange(this.rangeMap(
         val,
         this.panel.continuousLowValue,
         this.panel.continuousHighValue,
         this.panel.continuousLowColorHSL[1],
         this.panel.continuousHighColorHSL[1]
-      );
-      const lum = this.rangeMap(
+      ), 60, 98);
+      const lum = this.clampRange(this.rangeMap(
         val,
         this.panel.continuousLowValue,
         this.panel.continuousHighValue,
         this.panel.continuousLowColorHSL[2],
         this.panel.continuousHighColorHSL[2]
-      );
-      // const hue = (this.panel.continuousLowColorHSL[0] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueHueMultiplier));
-      // const sat = (this.panel.continuousLowColorHSL[1] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueSatMultiplier));
-      // const lum = (this.panel.continuousLowColorHSL[2] + ((val - this.panel.continuousLowValue) * this.panel.continuousValueLumMultiplier));
+      ), 60, 98);
 
       return hsluvToHex([hue, sat, lum]);
 
@@ -486,6 +483,11 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
     return (val -inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 
   }
+
+  clampRange(val: number, outMin: number, outMax: number) {
+    return Math.max(Math.min(val, outMax), outMin);
+  }
+
   onConfigChanged(update = false) {
     this.isTimeline = this.panel.display === 'timeline';
     this.isStacked = this.panel.display === 'stacked';
