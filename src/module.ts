@@ -12,6 +12,9 @@ import kbn from 'grafana/app/core/utils/kbn';
 
 import appEvents from 'grafana/app/core/app_events';
 
+/* eslint-disable id-blacklist, no-restricted-imports, @typescript-eslint/ban-types */
+import moment from 'moment';
+
 const grafanaColors = [
   '#7EB26D',
   '#EAB839',
@@ -1064,7 +1067,7 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
 
     const timeFormat = this.time_format(max - min, timeResolution / 1000);
     let displayOffset = 0;
-    if (this.dashboard.timezone === 'utc') {
+    if (this.dashboard.isTimezoneUtc()) {
       displayOffset = new Date().getTimezoneOffset() * 60000;
     }
 
