@@ -2,12 +2,11 @@ import { CanvasPanelCtrl } from './canvas-metric';
 import { DistinctPoints, LegendValue } from './distinct-points';
 import { isArray } from 'lodash';
 
-import { DataQueryResponseData, LegacyResponseData, DataFrame, guessFieldTypes, toDataFrame, getTimeField } from '@grafana/data';
+import { DataQueryResponseData, LegacyResponseData, DataFrame, guessFieldTypes, toDataFrame, getTimeField, getFieldDisplayName, PanelEvents} from '@grafana/data';
 
 import _ from 'lodash';
 import $ from 'jquery';
-import moment from 'moment';
-import {hsluvToHex, hexToHsluv} from 'hsluv-ts';
+import { hsluvToHex, hexToHsluv } from 'hsluv-ts';
 import kbn from 'grafana/app/core/utils/kbn';
 
 import appEvents from 'grafana/app/core/app_events';
@@ -176,15 +175,15 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
     _.defaultsDeep(this.panel, this.defaults);
     this.panel.display = 'timeline'; // Only supported version now
 
-    this.events.on('init-edit-mode', this.onInitEditMode.bind(this));
-    this.events.on('render', this.onRender.bind(this));
-    this.events.on('refresh', this.onRefresh.bind(this));
+    this.events.on(PanelEvents.editModeInitialized, this.onInitEditMode.bind(this));
+    this.events.on(PanelEvents.render, this.onRender.bind(this));
+    this.events.on(PanelEvents.refresh, this.onRefresh.bind(this));
 
     // 6.4+ use DataFrames
     (this as any).useDataFrames = true;
-    this.events.on('data-frames-received', this.onDataFramesReceived.bind(this));
-    this.events.on('data-snapshot-load', this.onSnapshotLoad.bind(this));
-    this.events.on('data-error', this.onDataError.bind(this));
+    this.events.on(PanelEvents.dataFramesReceived, this.onDataFramesReceived.bind(this));
+    this.events.on(PanelEvents.dataSnapshotLoad, this.onSnapshotLoad.bind(this));
+    this.events.on(PanelEvents.dataError, this.onDataError.bind(this));
   }
 
   onPanelInitialized() {
@@ -300,30 +299,44 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
       if (_.has(this.colorMap, val)) {
         return this.colorMap[val];
       }
-      const hue = this.rangeMap(
-        val,
-        this.panel.continuousLowValue,
-        this.panel.continuousHighValue,
+      const hue = this.hueMap(
         this.panel.continuousLowColorHSL[0],
-        this.panel.continuousHighColorHSL[0]
-      ) % 360;
-      const sat = this.clampRange(this.rangeMap(
-        val,
+        this.panel.continuousHighColorHSL[0],
         this.panel.continuousLowValue,
         this.panel.continuousHighValue,
-        this.panel.continuousLowColorHSL[1],
-        this.panel.continuousHighColorHSL[1]
-      ), 60, 98);
-      const lum = this.clampRange(this.rangeMap(
-        val,
-        this.panel.continuousLowValue,
-        this.panel.continuousHighValue,
-        this.panel.continuousLowColorHSL[2],
-        this.panel.continuousHighColorHSL[2]
-      ), 60, 98);
+        val
+      );
+      // const hue = this.rangeMap(
+      //   val,
+      //   this.panel.continuousLowValue,
+      //   this.panel.continuousHighValue,
+      //   this.panel.continuousLowColorHSL[0],
+      //   this.panel.continuousHighColorHSL[0]
+      // ) % 360;
+      const sat = this.clampRange(
+        this.rangeMap(
+          val,
+          this.panel.continuousLowValue,
+          this.panel.continuousHighValue,
+          this.panel.continuousLowColorHSL[1],
+          this.panel.continuousHighColorHSL[1]
+        ),
+        60,
+        98
+      );
+      const lum = this.clampRange(
+        this.rangeMap(
+          val,
+          this.panel.continuousLowValue,
+          this.panel.continuousHighValue,
+          this.panel.continuousLowColorHSL[2],
+          this.panel.continuousHighColorHSL[2]
+        ),
+        60,
+        98
+      );
 
       return hsluvToHex([hue, sat, lum]);
-
     } else {
       if (_.has(this.colorMap, val)) {
         return this.colorMap[val];
@@ -372,7 +385,7 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
       if (time) {
         frame.fields.forEach(field => {
           if (field !== time) {
-            const res = new DistinctPoints(field.config.title || field.name);
+            const res = new DistinctPoints(getFieldDisplayName(field, frame, frames) || field.name);
             for (let i = 0; i < time.values.length; i++) {
               res.add(time.values.get(i), this.formatValue(field.values.get(i)));
             }
@@ -482,9 +495,25 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
     this.panel.rangeMaps.push({ from: '', to: '', text: '' });
   }
 
+  hueMap(hueA: number, hueB: number, inMin: number, inMax: number, input: number) {
+    // console.log([hueA, hueB, inMin, inMax, input]);
+    let t = (input - inMin) / (inMax - inMin);
+    // console.log(t);
+    let d = hueB - hueA;
+    if (hueA > hueB) {
+      [hueA, hueB] = [hueB, hueA];
+      d = -d;
+      t = 1 - t;
+    }
+    if (d > 180) {
+      hueA = hueA + 360;
+      return hueA + ((t * (hueB - hueA)) % 360);
+    } else {
+      return (hueA + (t * d)) % 360;
+    }
+  }
   rangeMap(val: number, inMin: number, inMax: number, outMin: number, outMax: number) {
-    return (val -inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-
+    return ((val - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
   }
 
   clampRange(val: number, outMin: number, outMax: number) {
@@ -1067,7 +1096,7 @@ class ContinuousPanelCtrl extends CanvasPanelCtrl {
 
     const timeFormat = this.time_format(max - min, timeResolution / 1000);
     let displayOffset = 0;
-    if (this.dashboard.isTimezoneUtc()) {
+    if (this.dashboard.getTimezone() === 'utc') {
       displayOffset = new Date().getTimezoneOffset() * 60000;
     }
 
@@ -1242,11 +1271,6 @@ export function getProcessedDataFrames(results?: DataQueryResponseData[]): DataF
 
   for (const result of results) {
     const dataFrame = guessFieldTypes(toDataFrame(result));
-
-    // clear out any cached calcs
-    for (const field of dataFrame.fields) {
-      field.calcs = undefined;
-    }
 
     dataFrames.push(dataFrame);
   }

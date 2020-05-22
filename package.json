@@ -22,13 +22,16 @@
     "url": "https://github.com/NatelEnergy/grafana-discrete-panel.git"
   },
   "devDependencies": {
+    "@grafana/data": "^7.0.0",
     "@grafana/toolkit": "6.6.2",
-    "@grafana/data": "6.6.2",
     "@grafana/ui": "6.6.2",
     "@types/grafana": "github:CorpGlory/types-grafana.git",
+    "hsluv-ts": "^1.0.0",
     "jquery": "^3.2.1",
     "lodash": "^4.17.10",
-    "moment": "^2.22.1",
-    "hsluv-ts": "^1.0.0"
+    "moment": "^2.22.1"
+  },
+  "dependencies": {
+    "@grafana/runtime": "^7.0.0"
   }
 }
